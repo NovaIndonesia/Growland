@@ -78,24 +78,52 @@ app.all('/player/growid/login/validate', (req, res) => {
   );
 });
 
-// Check token → validasi dan refresh token + accountAge: 2
+// OLD PATH → redirect ke NEW PATH
 app.all('/player/growid/checktoken', (req, res) => {
-    const { refreshToken } = req.body;
-    try {
-    const decoded = Buffer.from(refreshToken, 'base64').toString('utf-8');
-    if (typeof decoded !== 'string' && !decoded.startsWith('growId=') && !decoded.includes('passwords=')) return res.render(__dirname + '/public/html/dashboard.ejs');
-    res.json({
-        status: 'success',
-        message: 'Account Validated.',
-        token: refreshToken,
-        url: '',
-        accountType: 'growtopia',
-        accountAge: 2
-    });
-    } catch (error) {
-        console.log("Redirecting to player login dashboard");
-        res.render(__dirname + '/public/html/dashboard.ejs');
+  const refreshToken = req.body.refreshToken || req.query.refreshToken || '';
+
+  if (!refreshToken) {
+    return res.redirect('/player/login/dashboard');
+  }
+
+  // redirect ke path baru
+  res.redirect(
+    `/player/growid/validate/checktoken/${encodeURIComponent(refreshToken)}`
+  );
+});
+
+// NEW PATHmiripall('/player/growid/validate/checktoken/:token?', (req, res) => {
+  const token = req.params.token;
+
+  if (!token) {
+    return res.render(__dirname + '/public/html/dashboard.ejs');
+  }
+
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+
+    // validasi sederhana (biar mirip growtopia)
+    if (
+      typeof decoded !== 'string' ||
+      !decoded.includes('growId=') ||
+      !decoded.includes('password=')
+    ) {
+      return res.render(__dirname + '/public/html/dashboard.ejs');
     }
+
+    // response HARUS SAMA
+    res.json({
+      status: 'success',
+      message: 'Account Validated.',
+      token: token,
+      url: '',
+      accountType: 'growtopia',
+      accountAge: 2
+    });
+  } catch (err) {
+    console.log('Invalid token:', err);
+    res.render(__dirname + '/public/html/dashboard.ejs');
+  }
 });
 
 // Root
